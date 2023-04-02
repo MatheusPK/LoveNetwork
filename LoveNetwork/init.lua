@@ -12,8 +12,8 @@ function LoveNetwork:newClient(server_address, server_port, id)
     return Client(server_address, server_port, id)
 end
 
-function LoveNetwork:newServer(host, port)
-    return Server(host, port)
+function LoveNetwork:newServer(host, port, tickRate)
+    return Server(host, port, tickRate)
 end
 
 return LoveNetwork
