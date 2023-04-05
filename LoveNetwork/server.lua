@@ -32,6 +32,7 @@ function Server:update()
         self:callEventTrigger(message)
         self:broadcast(data)
     end
+    socket.sleep(self.tickRate)
 end
 
 function Server:newClient(id, ip, port)
