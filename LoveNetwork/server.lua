@@ -9,73 +9,65 @@ function Server:init(host, port, tickRate)
     self.socket = socket:udp()
     self.socket:setsockname(host, port)
     self.socket:settimeout(0)
+
     self.clients = {}
-    self.entities = {}
     self.event_triggers = {}
-    self.pending_messages = {}
-    self.tickRate = 1/tickRate
-    self.start_time = 0
+    self.tickRate = 1 / tickRate
+end
+
+function Server:update()
+    local data, ip, port = self.socket.receivefrom()
+    if data then
+        local message = utils:decode(data)  -- Message pattern -> {sender = sender, event = event, content = content, sequence_number = sequence_number}
+        if not utils:isValidMessage(message) then return end
+
+        if message.event == 'connect' then 
+            self:newClient(message.sender, ip, port)
+        end
+
+        if message.event == 'disconnect' then
+            self:removeClient(message.sender)
+        end
+
+        self:callEventTrigger(message)
+        self:broadcast(data)
+    end
+end
+
+function Server:newClient(id, ip, port)
+    local newClient = {id = id, ip = ip, port = port}
+    table.insert(self.clients, newClient)
+    self.clients[id] = #self.clients
+end
+
+function Server:removeClient(id)
+    local lastClientIndex = #self.clients
+    utils:swap(self.clients, self.clients[id], lastClientIndex)
+    table.remove(self.clients, lastClientIndex)
+end
+
+function Server:broadcast(data)
+    for _, client in ipairs(self.clients) do
+        self:sendTo(client, data)
+    end
+end
+
+function Server:callEventTrigger(message)
+    local client = self.clients[message.sender]
+    local trigger = self.event_triggers[message.event]
+    if client and trigger then
+        trigger(message, client)
+    end
+end
+
+function Server:sendEventTo(client, event, content)
+    local message = {sender = 'SERVER', event = event, content = content}
+    local encoded_message = utils:encode(message)
+    self.socket:sendTo(client, encoded_message)
 end
 
 function Server:sendTo(client, data)
     self.socket:sendto(data, client.ip, client.port)
-end
-
-function Server:receive()
-    local data, sender_ip, sender_port = self.socket:receivefrom()
-    if data and sender_ip and sender_port then
-        local message = utils:decode(data) -- '{sender = sender, event = event, content = content, sequence_number = sequence_number}'
-        message.sender_ip = sender_ip ; message.sender_port = sender_port
-        return message
-    end
-    return nil
-end
-
-function Server:update()
-    local message = self:receive()
-    if message then
-        table.insert(self.pending_messages, message)
-    end
-
-    self:processMessages()
-end
-
-function Server:processMessages()
-    local current_time = os.clock()
-    local elapsed_time = current_time - self.start_time
-
-    if elapsed_time >= self.tickRate then
-        for _, message in ipairs(self.pending_messages) do
-            if message.event == 'connect' then
-                local newClient = {id = message.sender, ip = message.sender_ip, port = message.sender_port}
-                for _, client in ipairs(self.clients) do
-                    local connectMessage = {sender = client.id, event = 'connect', content = nil, sequence_number = 0}
-                    self:sendTo(newClient, utils:encode(connectMessage))
-                end
-                table.insert(self.clients, newClient)
-                self.clients[newClient.id] = #self.clients
-        
-            elseif message.event == 'disconnect' then
-                local lastClientIndex = #self.clients
-                utils:swap(self.clients, self.clients[message.sender], lastClientIndex)
-                table.remove(self.clients, lastClientIndex)
-            end
-        
-            local trigger = self.event_triggers[message.event]
-            if trigger then trigger(message) end
-       
-            self:broadcast(message)
-        end
-        self.pending_messages = {}
-        self.start_time = current_time
-    end
-end
-
-function Server:broadcast(message)
-    local data = utils:encode(message)
-    for _, client in ipairs(self.clients) do
-        self:sendTo(client, data)
-    end
 end
 
 function Server:on(event, trigger)
