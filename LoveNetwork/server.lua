@@ -54,7 +54,8 @@ function Server:broadcast(data)
 end
 
 function Server:callEventTrigger(message)
-    local client = self.clients[message.sender]
+    local clientIndex = self.clients[message.sender]
+    local client = self.clients[clientIndex]
     local trigger = self.event_triggers[message.event]
     if client and trigger then
         trigger(message, client)
