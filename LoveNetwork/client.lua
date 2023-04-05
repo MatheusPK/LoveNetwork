@@ -42,10 +42,9 @@ function Client:send(event, content)
 end
 
 function Client:callEventTrigger(message)
-    local client = self.clients[message.sender]
     local trigger = self.event_triggers[message.event]
-    if client and trigger then
-        trigger(message, client)
+    if trigger then
+        trigger(message)
     end
 end
 

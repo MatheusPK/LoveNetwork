@@ -16,7 +16,7 @@ function Server:init(host, port, tickRate)
 end
 
 function Server:update()
-    local data, ip, port = self.socket.receivefrom()
+    local data, ip, port = self.socket:receivefrom()
     if data then
         local message = utils:decode(data)  -- Message pattern -> {sender = sender, event = event, content = content, sequence_number = sequence_number}
         if not utils:isValidMessage(message) then return end
