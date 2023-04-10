@@ -65,7 +65,7 @@ end
 function Server:sendEventTo(client, event, content)
     local message = {sender = 'SERVER', event = event, content = content}
     local encoded_message = utils:encode(message)
-    self.socket:sendTo(client, encoded_message)
+    self:sendTo(client, encoded_message)
 end
 
 function Server:sendTo(client, data)
