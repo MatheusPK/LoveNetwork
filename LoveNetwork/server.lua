@@ -48,7 +48,7 @@ function Server:sendWorldSnapshot()
 
     for i = 1, #self.clients do
         local client = self.clients[i]
-        local worldStatePkg = package('SERVER', self.sequence, 0, 0, NETWORK_EVENTS.WORLD_STATE, worldStates[client.id])
+        local worldStatePkg = package('SERVER', self.sequence, 0, 0, 'w', worldStates[client.id])
         worldStatePkg.content = coder:encode(worldStatePkg.content, worldStatePkg.header.event)
         local encoded_package = worldStatePkg:encode(socket.gettime())
         self.biggestPackage = math.max(string.len(encoded_package), self.biggestPackage)
@@ -59,11 +59,11 @@ end
 function Server:processPackage(pkg)
     local event = pkg.header.event
 
-    if event == NETWORK_EVENTS.CONNECT then
+    if event == 'c' then
         self:newClient(pkg.header.id, pkg.ip, pkg.port)
     end
 
-    if event == NETWORK_EVENTS.DISCONNECT then
+    if event == 'd' then
         self:removeClient(pkg.header.id)
     end
 
